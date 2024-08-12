@@ -1,6 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <!-- Image with toggleable overlay interface. -->
+    <!-- While my zoom buttons work, the user will want to zoom in very close, with images far exceeding the view area, yet I can't get the mouse-drag panning to work. My log shows several lines of non-zero values but the container doesn't change position (or the imges inside it don't). ALSO, after several lines of output, the log data stops outputting and it seems the normal browser image drag event seems to kick in, which is really weird. But let's first focus on the container not moving, which seems like it should be impossible. -->
+
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Image Comparer</title>
@@ -13,12 +16,13 @@
             justify-content: center;
             align-items: center;
             height: 100vh;
-            overflow: hidden;
+            /* overflow: auto; cannot use or user cannot browse with browser scroll for now. MAYBE if we get mouse drag to work we can put this back LATER. */
         }
         .container {
             position: relative;
             width: 100%;
             height: 100%;
+            cursor: grab;
         }
         img {
             display: block;
@@ -26,7 +30,7 @@
             height: 100%;
             object-fit: contain;
             transform-origin: center;
-            transition: transform 0.3s ease;
+            transition: transform 0.1s ease;
         }
         .overlay {
             position: absolute;
@@ -35,10 +39,10 @@
             width: 100%;
             height: 100%;
             opacity: 1;
-            transition: opacity 0.3s ease;
+            transition: opacity 0.1s ease;
         }
         .controls {
-            position: absolute;
+            position: fixed;
             top: 10px;
             right: 10px;
             background-color: rgba(255, 255, 255, 0.8);
@@ -47,6 +51,7 @@
             display: flex;
             gap: 10px;
             z-index: 10;
+            width: auto;
         }
         .controls button {
             background: none;
@@ -61,13 +66,13 @@
     </style>
 </head>
 <body>
-    <div class="container">
+    <div class="container" id="imageContainer">
         <img src="a.jpg" alt="Base Image" id="baseImage">
         <img src="overlay.jpg" alt="Overlay Image" class="overlay" id="overlayImage">
         <div class="controls" id="controls">
-			<button id="zoomIn">+</button>🔍
-            <button id="zoomOut">-</button>
-             <button id="togglePosition">↔</button>
+            🔍<button id="zoomOut">-</button> 
+            <button id="zoomIn">+</button>
+            <button id="togglePosition">↔</button>
         </div>
     </div>
 
@@ -78,9 +83,12 @@
         const zoomInButton = document.getElementById('zoomIn');
         const zoomOutButton = document.getElementById('zoomOut');
         const togglePositionButton = document.getElementById('togglePosition');
+        const imageContainer = document.getElementById('imageContainer');
 
         let zoomLevel = 1;
         let isRightPosition = true;
+        let isDragging = false;
+        let startX, startY, scrollLeft, scrollTop;
 
         overlayImage.addEventListener('click', () => {
             overlayImage.style.opacity = overlayImage.style.opacity == 1 ? 0 : 1;
@@ -102,9 +110,42 @@
 
         togglePositionButton.addEventListener('click', () => {
             isRightPosition = !isRightPosition;
-            controls.style.right = isRightPosition ? '10px' : '';
+            controls.style.right = isRightPosition ? '10px' : 'auto';
             controls.style.left = isRightPosition ? '' : '10px';
+        });
+
+        // Enable panning with mouse drag
+        imageContainer.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            imageContainer.style.cursor = 'grabbing';
+            startX = e.pageX - imageContainer.offsetLeft;
+            startY = e.pageY - imageContainer.offsetTop;
+            scrollLeft = imageContainer.scrollLeft;
+            scrollTop = imageContainer.scrollTop;
+        });
+
+        imageContainer.addEventListener('mouseleave', () => {
+            isDragging = false;
+            imageContainer.style.cursor = 'grab';
+        });
+
+        imageContainer.addEventListener('mouseup', () => {
+            isDragging = false;
+            imageContainer.style.cursor = 'grab';
+        });
+
+        imageContainer.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            e.preventDefault();
+            const x = e.pageX - imageContainer.offsetLeft;
+            const y = e.pageY - imageContainer.offsetTop;
+            const walkX = (x - startX) * 2; // Multiplied by 2 for faster panning
+            const walkY = (y - startY) * 2;
+            imageContainer.scrollLeft = scrollLeft - walkX;
+            imageContainer.scrollTop = scrollTop - walkY;
+            console.log(scrollLeft-walkX, scrollTop-walkY);
         });
     </script>
 </body>
 </html>
+<!-- vim: et -->
