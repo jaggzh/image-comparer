@@ -91,6 +91,7 @@
         const imageContainerOuter = document.getElementById('imageContainerOuter');
 
         let zoomLevel = 1;
+        let zoomAmt = .005
         let isRightPosition = true;
        
         let isDragging = false;
@@ -109,17 +110,41 @@
             overlayImage.style.opacity = overlayImage.style.opacity == 1 ? 0 : 1;
         });
 
-        zoomInButton.addEventListener('click', () => {
-            zoomLevel += 0.1;
-            imageContainer.style.transform = `scale(${zoomLevel})`;
-        });
+		// Continuous zoom in
+		zoomInButton.addEventListener('mousedown', () => {
+			zoomInterval = setInterval(() => {
+				zoomLevel += zoomAmt + zoomLevel*.01;
+				imageContainer.style.transform = `scale(${zoomLevel})`;
+			}, 10); // Adjust the interval time (ms) as needed
+		});
 
-        zoomOutButton.addEventListener('click', () => {
-            if (zoomLevel > 0.1) {
-                zoomLevel -= 0.1;
-                imageContainer.style.transform = `scale(${zoomLevel})`;
-            }
-        });
+		zoomInButton.addEventListener('mouseup', () => {
+			clearInterval(zoomInterval);
+		});
+
+		zoomInButton.addEventListener('mouseleave', () => {
+			clearInterval(zoomInterval);
+		});
+
+		// Continuous zoom out
+		zoomOutButton.addEventListener('mousedown', () => {
+			zoomInterval = setInterval(() => {
+				if (zoomLevel >= zoomAmt*2) {
+					zoomLevel -= zoomAmt + zoomLevel*.01;
+					imageContainer.style.transform = `scale(${zoomLevel})`;
+				}
+			}, 10); // Adjust the interval time (ms) as needed
+		});
+
+		zoomOutButton.addEventListener('mouseup', () => {
+			clearInterval(zoomInterval);
+		});
+
+		zoomOutButton.addEventListener('mouseleave', () => {
+			clearInterval(zoomInterval);
+		});
+
+
 
         togglePositionButton.addEventListener('click', () => {
             isRightPosition = !isRightPosition;
