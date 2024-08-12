@@ -108,6 +108,7 @@
 
         let zoomLevel = 1;
         let zoomAmt = .005
+        let zoomAmtWheel = .3
         let isRightPosition = true;
        
         let isDragging = false;
@@ -125,6 +126,21 @@
         overlayImage.addEventListener('click', () => {
             overlayImage.style.opacity = overlayImage.style.opacity == 1 ? 0 : 1;
         });
+
+		// Add zooming with the mouse wheel
+		imageContainerOuter.addEventListener('wheel', (e) => {
+			e.preventDefault();
+			if (e.deltaY < 0) {
+				// Scrolling up, zoom in
+				zoomLevel += zoomAmtWheel + zoomLevel * 0.01;
+			} else {
+				// Scrolling down, zoom out
+				if (zoomLevel >= zoomAmtWheel * 2) {
+					zoomLevel -= zoomAmtWheel + zoomLevel * 0.01;
+				}
+			}
+			imageContainer.style.transform = `scale(${zoomLevel})`;
+		});
 
 		// Continuous zoom in
 		zoomInButton.addEventListener('mousedown', () => {
