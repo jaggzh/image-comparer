@@ -7,12 +7,12 @@
     <style>
         body {
             font-family: Arial, sans-serif;
+            margin: 0;
+            background-color: #f0f0f0;
             display: flex;
             justify-content: center;
             align-items: center;
             height: 100vh;
-            margin: 0;
-            background-color: #f0f0f0;
             overflow: hidden;
         }
         .container {
@@ -25,7 +25,8 @@
             width: 100%;
             height: 100%;
             object-fit: contain;
-            /* Ensures that the image retains its aspect ratio and fits within the container */
+            transform-origin: center;
+            transition: transform 0.3s ease;
         }
         .overlay {
             position: absolute;
@@ -36,18 +37,73 @@
             opacity: 1;
             transition: opacity 0.3s ease;
         }
+        .controls {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: rgba(255, 255, 255, 0.8);
+            padding: 10px;
+            border-radius: 5px;
+            display: flex;
+            gap: 10px;
+            z-index: 10;
+        }
+        .controls button {
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            padding: 5px;
+        }
+        .controls button:hover {
+            color: #007BFF;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <img src="a.jpg" alt="Base Image" id="baseImage">
         <img src="overlay.jpg" alt="Overlay Image" class="overlay" id="overlayImage">
+        <div class="controls" id="controls">
+			<button id="zoomIn">+</button>🔍
+            <button id="zoomOut">-</button>
+             <button id="togglePosition">↔</button>
+        </div>
     </div>
 
     <script>
-        const overlay = document.getElementById('overlayImage');
-        overlay.addEventListener('click', () => {
-            overlay.style.opacity = overlay.style.opacity == 1 ? 0 : 1;
+        const overlayImage = document.getElementById('overlayImage');
+        const baseImage = document.getElementById('baseImage');
+        const controls = document.getElementById('controls');
+        const zoomInButton = document.getElementById('zoomIn');
+        const zoomOutButton = document.getElementById('zoomOut');
+        const togglePositionButton = document.getElementById('togglePosition');
+
+        let zoomLevel = 1;
+        let isRightPosition = true;
+
+        overlayImage.addEventListener('click', () => {
+            overlayImage.style.opacity = overlayImage.style.opacity == 1 ? 0 : 1;
+        });
+
+        zoomInButton.addEventListener('click', () => {
+            zoomLevel += 0.1;
+            baseImage.style.transform = `scale(${zoomLevel})`;
+            overlayImage.style.transform = `scale(${zoomLevel})`;
+        });
+
+        zoomOutButton.addEventListener('click', () => {
+            if (zoomLevel > 0.1) {
+                zoomLevel -= 0.1;
+                baseImage.style.transform = `scale(${zoomLevel})`;
+                overlayImage.style.transform = `scale(${zoomLevel})`;
+            }
+        });
+
+        togglePositionButton.addEventListener('click', () => {
+            isRightPosition = !isRightPosition;
+            controls.style.right = isRightPosition ? '10px' : '';
+            controls.style.left = isRightPosition ? '' : '10px';
         });
     </script>
 </body>
