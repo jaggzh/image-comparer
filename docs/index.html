@@ -43,7 +43,7 @@
         .controls {
             position: fixed;
             top: 10px;
-            right: 10px;
+            left: 10px;
             background-color: rgba(255, 255, 255, 0.8);
             padding: 10px;
             border-radius: 5px;
@@ -77,6 +77,55 @@
         }
         .imglinks {
             display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(255, 255, 255, 0.9);
+            padding: 20px 20px 0px 20px;
+            border-radius: 10px;
+            z-index: 20;
+            width: 600px;
+            max-width: 95%;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+            box-sizing: border-box; /* Ensure padding is included in width */
+        }
+
+        .imglinks #closeLinksBox {
+            position: relative;
+            margin-top: .25em;
+            padding-bottom: 0;
+            bottom: 10px;
+            right: 10px;
+            background: none;
+            border: none;
+            font-size: 15px;
+            cursor: pointer;
+            z-index: 21;
+        }
+
+        .imglinks input,
+        .imglinks textarea,
+        .imglinks button {
+            width: 100%;
+            margin-bottom: 10px;
+            padding: 5px;
+            font-size: 14px;
+        }
+
+        .imglinks button {
+            padding: 10px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        .imglinks #inst {
+            font-size: 60%;
+        }
+
+#generated_url {
+            width: 100%;
+            margin-bottom: 10px;
         }
     </style>
 </head>
@@ -88,13 +137,14 @@
         <button id="togglePosition">↔</button>
     </div>
     <div class="imglinks" id="imglinks">
-        <!-- User provides two links here:
-          <input name=img_url>
-          <input name=overlay_url>
-          <input area with generated url to this page value=?generated?>
-             value="https://jaggzh.github.io/image-comparer/?i=http://.../img.jpg&o=http://.../overlay.jpg"
-             Icon to copy value to clipboard: 📋
-        -->
+        <div id="inst">Provide urls for a shareable overlay...</div>
+        <input type="text" id="originUrl" placeholder="Image-Comparer base URL">
+        <input type="text" id="img_url" placeholder="Main image URL">
+        <input type="text" id="overlay_url" placeholder="Overlay image URL">
+        <button id="generateUrl">Generate URL</button>
+        <textarea id="generated_url" readonly placeholder="Generated URL" rows="4" style="resize: none;"></textarea>
+        <button id="copyUrl">📋 Copy</button>
+        <button id="closeLinksBox">Close ✖</button>
     </div>
     <div class="tip" id="tip">
         Click toggles overlay.
@@ -107,151 +157,197 @@
 </div>
 
     <script>
-        console.log("\n");
-        console.log("\n");
-        console.log("\n");
-        const overlayImage = document.getElementById('overlayImage');
-        const baseImage = document.getElementById('baseImage');
-        const controls = document.getElementById('controls');
-        const zoomInButton = document.getElementById('zoomIn');
-        const zoomOutButton = document.getElementById('zoomOut');
-        const togglePositionButton = document.getElementById('togglePosition');
-        const imageContainer = document.getElementById('imageContainer');
-        const imageContainerOuter = document.getElementById('imageContainerOuter');
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log("\n");
+            console.log("\n");
+            console.log("\n");
+            const overlayImage = document.getElementById('overlayImage');
+            const baseImage = document.getElementById('baseImage');
+            const controls = document.getElementById('controls');
+            const zoomInButton = document.getElementById('zoomIn');
+            const zoomOutButton = document.getElementById('zoomOut');
+            const togglePositionButton = document.getElementById('togglePosition');
+            const imageContainer = document.getElementById('imageContainer');
+            const imageContainerOuter = document.getElementById('imageContainerOuter');
+            const linkButton = document.getElementById('link');
+            const imglinksDiv = document.getElementById('imglinks');
+            const imglinksOriginInput = document.getElementById("originUrl");
+            const generateUrlButton = document.getElementById('generateUrl');
+            const copyUrlButton = document.getElementById('copyUrl');
+            const imgUrlInput = document.getElementById('img_url');
+            const overlayUrlInput = document.getElementById('overlay_url');
+            const generatedUrlInput = document.getElementById('generated_url');
+            const closeLinksBox = document.getElementById('closeLinksBox');
 
-        let zoomLevel = 1;
-        let zoomAmt = .005
-        let zoomAmtWheel = .3
-        let isRightPosition = true;
-       
-        let dragNo = 0;
-        let dragMaybe = 1;
-        let dragYes = 2;
-        let isDragging = dragNo;
-        let startX, startY, scrollLeft, scrollTop;
+            const defOriginURL = "https://jaggzh.github.io/image-comparer/";
 
-        let dragThreshold = 5; // for click vs drag
+            let zoomLevel = 1;
+            let zoomAmt = .005;
+            let zoomAmtWheel = .3;
+            let isRightPosition = false;
+           
+            let dragNo = 0;
+            let dragMaybe = 1;
+            let dragYes = 2;
+            let isDragging = dragNo;
+            let startX, startY, scrollLeft, scrollTop;
 
-
-        const images = document.querySelectorAll('img');
-        images.forEach(image => {
-            image.addEventListener('dragstart', (e) => {
-                e.preventDefault();  // Prevent the default image drag
+            let dragThreshold = 5; // for click vs drag
+            
+            closeLinksBox.addEventListener('click', () => {
+                imglinksDiv.style.display = 'none';
             });
-        });
-        
+
+            function getDefOriginURL() {
+                const origin = window.location.origin;
+                return (origin === "null" || !origin) ? defOriginURL : origin;
+            }
+            imglinksOriginInput.value = getDefOriginURL();
+
+            // Handle optional query parameters
+            const urlParams = new URLSearchParams(window.location.search);
+            const baseImgUrl = urlParams.get('i');
+            const overlayImgUrl = urlParams.get('o');
+            if (baseImgUrl) {
+                baseImage.src = baseImgUrl;
+            }
+            if (overlayImgUrl) {
+                overlayImage.src = overlayImgUrl;
+            }
+
+            const images = document.querySelectorAll('img');
+            images.forEach(image => {
+                image.addEventListener('dragstart', (e) => {
+                    e.preventDefault();  // Prevent the default image drag
+                });
+            });
+            
 
 
-        <!-- ZOOM/CONTROLS -->
+            <!-- ZOOM/CONTROLS -->
 
-        // Continuous zoom in
-        zoomInButton.addEventListener('mousedown', () => {
-            zoomInterval = setInterval(() => {
-                zoomLevel += zoomAmt + zoomLevel*.01;
-                imageContainer.style.transform = `scale(${zoomLevel})`;
-            }, 10); // Adjust the interval time (ms) as needed
-        });
-
-        zoomInButton.addEventListener('mouseup', () => {
-            clearInterval(zoomInterval);
-        });
-
-        zoomInButton.addEventListener('mouseleave', () => {
-            clearInterval(zoomInterval);
-        });
-
-        // Continuous zoom out
-        zoomOutButton.addEventListener('mousedown', () => {
-            zoomInterval = setInterval(() => {
-                if (zoomLevel >= zoomAmt*2) {
-                    zoomLevel -= zoomAmt + zoomLevel*.01;
+            // Continuous zoom in
+            zoomInButton.addEventListener('mousedown', () => {
+                zoomInterval = setInterval(() => {
+                    zoomLevel += zoomAmt + zoomLevel * 0.01;
                     imageContainer.style.transform = `scale(${zoomLevel})`;
+                }, 10); // Adjust the interval time (ms) as needed
+            });
+
+            zoomInButton.addEventListener('mouseup', () => {
+                clearInterval(zoomInterval);
+            });
+
+            zoomInButton.addEventListener('mouseleave', () => {
+                clearInterval(zoomInterval);
+            });
+
+            // Continuous zoom out
+            zoomOutButton.addEventListener('mousedown', () => {
+                zoomInterval = setInterval(() => {
+                    if (zoomLevel >= zoomAmt*2) {
+                        zoomLevel -= zoomAmt + zoomLevel*.01;
+                        imageContainer.style.transform = `scale(${zoomLevel})`;
+                    }
+                }, 10); // Adjust the interval time (ms) as needed
+            });
+
+            zoomOutButton.addEventListener('mouseup', () => {
+                clearInterval(zoomInterval);
+            });
+
+            zoomOutButton.addEventListener('mouseleave', () => {
+                clearInterval(zoomInterval);
+            });
+
+
+            togglePositionButton.addEventListener('click', () => {
+                isRightPosition = !isRightPosition;
+                controls.style.right = isRightPosition ? '10px' : 'auto';
+                controls.style.left = isRightPosition ? 'auto' : '10px';
+            });
+
+
+            <!-- IMAGE AREA -->
+
+            // Wheel zoom
+            imageContainerOuter.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                if (e.deltaY < 0) {
+                    // Scrolling up, zoom in
+                    zoomLevel += zoomAmtWheel + zoomLevel * 0.01;
+                } else {
+                    // Scrolling down, zoom out
+                    if (zoomLevel >= zoomAmtWheel * 2) {
+                        zoomLevel -= zoomAmtWheel + zoomLevel * 0.01;
+                    }
                 }
-            }, 10); // Adjust the interval time (ms) as needed
-        });
-
-        zoomOutButton.addEventListener('mouseup', () => {
-            clearInterval(zoomInterval);
-        });
-
-        zoomOutButton.addEventListener('mouseleave', () => {
-            clearInterval(zoomInterval);
-        });
+                imageContainer.style.transform = `scale(${zoomLevel})`;
+            });
 
 
-        togglePositionButton.addEventListener('click', () => {
-            isRightPosition = !isRightPosition;
-            controls.style.right = isRightPosition ? '10px' : 'auto';
-            controls.style.left = isRightPosition ? '' : '10px';
-        });
+            imageContainerOuter.addEventListener('mousedown', (e) => {
+                isDragging = dragMaybe;
+                startX = e.pageX;
+                startY = e.pageY;
+                scrollLeft = parseInt(getComputedStyle(imageContainer).left, 10);
+                scrollTop = parseInt(getComputedStyle(imageContainer).top, 10);
+                imageContainer.style.cursor = 'grabbing';
+            });
 
+            imageContainerOuter.addEventListener('mousemove', (e) => {
+                const walkX = Math.abs(e.pageX - startX);
+                const walkY = Math.abs(e.pageY - startY);
+                //console.log("px:", e.pageX, " sX:", startX);
 
-        <!-- IMAGE AREA -->
+                if (isDragging == dragNo) return;
 
-        // Wheel zoom
-        imageContainerOuter.addEventListener('wheel', (e) => {
-            e.preventDefault();
-            if (e.deltaY < 0) {
-                // Scrolling up, zoom in
-                zoomLevel += zoomAmtWheel + zoomLevel * 0.01;
-            } else {
-                // Scrolling down, zoom out
-                if (zoomLevel >= zoomAmtWheel * 2) {
-                    zoomLevel -= zoomAmtWheel + zoomLevel * 0.01;
+                if (walkX > dragThreshold || walkY > dragThreshold) {
+                    isDragging = dragYes;
                 }
-            }
-            imageContainer.style.transform = `scale(${zoomLevel})`;
-        });
 
+                e.preventDefault();
 
-        imageContainerOuter.addEventListener('mousedown', (e) => {
-            isDragging = dragMaybe;
-            startX = e.pageX;
-            startY = e.pageY;
-            scrollLeft = parseInt(getComputedStyle(imageContainer).left, 10);
-            scrollTop = parseInt(getComputedStyle(imageContainer).top, 10);
-            imageContainer.style.cursor = 'grabbing';
-        });
+                // Apply the new calculated positions
+                imageContainer.style.left = `${scrollLeft + (e.pageX - startX)}px`;
+                imageContainer.style.top = `${scrollTop + (e.pageY - startY)}px`;
+            });
 
-        imageContainerOuter.addEventListener('mousemove', (e) => {
-            const walkX = Math.abs(e.pageX - startX);
-            const walkY = Math.abs(e.pageY - startY);
-            //console.log("px:", e.pageX, " sX:", startX);
+            imageContainerOuter.addEventListener('mouseup', () => {
+                if (isDragging != dragYes) {
+                    overlayImage.style.opacity = overlayImage.style.opacity == 1 ? 0 : 1;
+                }
+                isDragging = dragNo;
+                imageContainer.style.cursor = 'grab';
+            });
 
-            if (isDragging == dragNo) return;
+            imageContainer.addEventListener('mouseleave', () => {
+                isDragging = dragNo;
+                imageContainer.style.cursor = 'grab';
+            });
 
-            if (walkX > dragThreshold || walkY > dragThreshold) {
-                isDragging = dragYes;
-            }
+            // Show the imglinks div
+            linkButton.addEventListener('click', () => {
+                imglinksDiv.style.display = 'block';
+            });
 
-            e.preventDefault();
+            // Generate the URL
+            generateUrlButton.addEventListener('click', () => {
+                const imgUrl = imgUrlInput.value;
+                const overlayUrl = overlayUrlInput.value;
+                const origin = imglinksOriginInput.value || (getDefOriginURL() + window.location.pathname);
+                const generatedUrl = `${origin}?i=${encodeURIComponent(imgUrl)}&o=${encodeURIComponent(overlayUrl)}`;
+                generatedUrlInput.value = generatedUrl;
+            });
 
-            // Apply the new calculated positions
-            imageContainer.style.left = `${scrollLeft + (e.pageX - startX)}px`;
-            imageContainer.style.top = `${scrollTop + (e.pageY - startY)}px`;
-        });
-
-        imageContainerOuter.addEventListener('mouseup', () => {
-            if (isDragging != dragYes) {
-                overlayImage.style.opacity = overlayImage.style.opacity == 1 ? 0 : 1;
-            }
-            isDragging = dragNo;
-            imageContainer.style.cursor = 'grab';
-        });
-
-        /* imageContainerOuter.addEventListener('click', (e) => {
-            if (!isDragging) {
-                // Only toggle overlay if it was not a drag
-                overlayImage.style.opacity = overlayImage.style.opacity == 1 ? 0 : 1;
-            }
-        }); */
-
-
-        imageContainer.addEventListener('mouseleave', () => {
-            isDragging = dragNo;
-            imageContainer.style.cursor = 'grab';
+            // Copy the generated URL to the clipboard
+            copyUrlButton.addEventListener('click', () => {
+                generatedUrlInput.select();
+                document.execCommand('copy');
+            });
         });
     </script>
 </body>
 </html>
-<!-- vim: et -->
+<!-- vim: et
+-->
