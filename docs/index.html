@@ -19,8 +19,8 @@
             position: relative;
             width: 100%;
             height: 100%;
-			left:0;
-			top:0;
+            left:0;
+            top:0;
             cursor: grab;
             overflow: scroll; /* Enable scrolling */
             transform-origin: center;
@@ -63,7 +63,7 @@
             color: #007BFF;
         }
         .tip {
-        	font-size: 50%;
+            font-size: 50%;
             position: fixed;
             bottom: 5px;
             left: 10px;
@@ -78,14 +78,14 @@
     </style>
 </head>
 <body>
-	<div class="controls" id="controls">
-		🔍<button id="zoomOut">-</button> 
-		<button id="zoomIn">+</button>
-		<button id="togglePosition">↔</button>
-	</div>
-	<div class="tip" id="tip">
-		Click toggles overlay.
-	</div>
+    <div class="controls" id="controls">
+        🔍<button id="zoomOut">-</button> 
+        <button id="zoomIn">+</button>
+        <button id="togglePosition">↔</button>
+    </div>
+    <div class="tip" id="tip">
+        Click toggles overlay.
+    </div>
     <div class="containerOuter" id="imageContainerOuter">
     <div class="container" id="imageContainer">
         <img src="a.jpg" alt="Base Image" id="baseImage">
@@ -94,9 +94,9 @@
 </div>
 
     <script>
-    	console.log("\n");
-    	console.log("\n");
-    	console.log("\n");
+        console.log("\n");
+        console.log("\n");
+        console.log("\n");
         const overlayImage = document.getElementById('overlayImage');
         const baseImage = document.getElementById('baseImage');
         const controls = document.getElementById('controls');
@@ -111,71 +111,59 @@
         let zoomAmtWheel = .3
         let isRightPosition = true;
        
-        let isDragging = false;
+        let dragNo = 0;
+        let dragMaybe = 1;
+        let dragYes = 2;
+        let isDragging = dragNo;
         let startX, startY, scrollLeft, scrollTop;
 
+        let dragThreshold = 5; // for click vs drag
 
-		const images = document.querySelectorAll('img');
-		images.forEach(image => {
-			image.addEventListener('dragstart', (e) => {
-				e.preventDefault();  // Prevent the default image drag
-			});
-		});
-		
 
-        overlayImage.addEventListener('click', () => {
-            overlayImage.style.opacity = overlayImage.style.opacity == 1 ? 0 : 1;
+        const images = document.querySelectorAll('img');
+        images.forEach(image => {
+            image.addEventListener('dragstart', (e) => {
+                e.preventDefault();  // Prevent the default image drag
+            });
+        });
+        
+
+
+        <!-- ZOOM/CONTROLS -->
+
+        // Continuous zoom in
+        zoomInButton.addEventListener('mousedown', () => {
+            zoomInterval = setInterval(() => {
+                zoomLevel += zoomAmt + zoomLevel*.01;
+                imageContainer.style.transform = `scale(${zoomLevel})`;
+            }, 10); // Adjust the interval time (ms) as needed
         });
 
-		// Add zooming with the mouse wheel
-		imageContainerOuter.addEventListener('wheel', (e) => {
-			e.preventDefault();
-			if (e.deltaY < 0) {
-				// Scrolling up, zoom in
-				zoomLevel += zoomAmtWheel + zoomLevel * 0.01;
-			} else {
-				// Scrolling down, zoom out
-				if (zoomLevel >= zoomAmtWheel * 2) {
-					zoomLevel -= zoomAmtWheel + zoomLevel * 0.01;
-				}
-			}
-			imageContainer.style.transform = `scale(${zoomLevel})`;
-		});
+        zoomInButton.addEventListener('mouseup', () => {
+            clearInterval(zoomInterval);
+        });
 
-		// Continuous zoom in
-		zoomInButton.addEventListener('mousedown', () => {
-			zoomInterval = setInterval(() => {
-				zoomLevel += zoomAmt + zoomLevel*.01;
-				imageContainer.style.transform = `scale(${zoomLevel})`;
-			}, 10); // Adjust the interval time (ms) as needed
-		});
+        zoomInButton.addEventListener('mouseleave', () => {
+            clearInterval(zoomInterval);
+        });
 
-		zoomInButton.addEventListener('mouseup', () => {
-			clearInterval(zoomInterval);
-		});
+        // Continuous zoom out
+        zoomOutButton.addEventListener('mousedown', () => {
+            zoomInterval = setInterval(() => {
+                if (zoomLevel >= zoomAmt*2) {
+                    zoomLevel -= zoomAmt + zoomLevel*.01;
+                    imageContainer.style.transform = `scale(${zoomLevel})`;
+                }
+            }, 10); // Adjust the interval time (ms) as needed
+        });
 
-		zoomInButton.addEventListener('mouseleave', () => {
-			clearInterval(zoomInterval);
-		});
+        zoomOutButton.addEventListener('mouseup', () => {
+            clearInterval(zoomInterval);
+        });
 
-		// Continuous zoom out
-		zoomOutButton.addEventListener('mousedown', () => {
-			zoomInterval = setInterval(() => {
-				if (zoomLevel >= zoomAmt*2) {
-					zoomLevel -= zoomAmt + zoomLevel*.01;
-					imageContainer.style.transform = `scale(${zoomLevel})`;
-				}
-			}, 10); // Adjust the interval time (ms) as needed
-		});
-
-		zoomOutButton.addEventListener('mouseup', () => {
-			clearInterval(zoomInterval);
-		});
-
-		zoomOutButton.addEventListener('mouseleave', () => {
-			clearInterval(zoomInterval);
-		});
-
+        zoomOutButton.addEventListener('mouseleave', () => {
+            clearInterval(zoomInterval);
+        });
 
 
         togglePositionButton.addEventListener('click', () => {
@@ -184,44 +172,73 @@
             controls.style.left = isRightPosition ? '' : '10px';
         });
 
-		imageContainerOuter.addEventListener('mousedown', (e) => {
-			isDragging = true;
-			imageContainer.style.cursor = 'grabbing';
-			startX = e.pageX;
-			startY = e.pageY;
-			scrollLeft = parseInt(getComputedStyle(imageContainer).left, 10);
-			scrollTop = parseInt(getComputedStyle(imageContainer).top, 10);
-			console.log('scrolll onevent: ', scrollLeft);
-			console.log('scrollr onevent: ', scrollTop);
-			console.log('StartX:', startX, 'StartY:', startY);
-		});
 
-		imageContainerOuter.addEventListener('mousemove', (e) => {
-			if (!isDragging) return;
-			e.preventDefault();
+        <!-- IMAGE AREA -->
 
-			// Calculate the difference in the mouse movement
-			const walkX = (e.pageX - startX) * 1; // Adjust the multiplier as needed
-			const walkY = (e.pageY - startY) * 1;
+        // Wheel zoom
+        imageContainerOuter.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            if (e.deltaY < 0) {
+                // Scrolling up, zoom in
+                zoomLevel += zoomAmtWheel + zoomLevel * 0.01;
+            } else {
+                // Scrolling down, zoom out
+                if (zoomLevel >= zoomAmtWheel * 2) {
+                    zoomLevel -= zoomAmtWheel + zoomLevel * 0.01;
+                }
+            }
+            imageContainer.style.transform = `scale(${zoomLevel})`;
+        });
 
-			// Apply the new calculated positions
-			const newLeft = (scrollLeft + walkX) + "px";
-			const newTop = (scrollTop + walkY) + "px";
 
-			console.log("newl:", newLeft, "newt:", newTop);
-			imageContainer.style.left = newLeft;
-			imageContainer.style.top = newTop;
-		});
+        imageContainerOuter.addEventListener('mousedown', (e) => {
+            isDragging = dragMaybe;
+            startX = e.pageX;
+            startY = e.pageY;
+            scrollLeft = parseInt(getComputedStyle(imageContainer).left, 10);
+            scrollTop = parseInt(getComputedStyle(imageContainer).top, 10);
+            imageContainer.style.cursor = 'grabbing';
+        });
 
-		imageContainerOuter.addEventListener('mouseup', () => {
-			isDragging = false;
-			imageContainer.style.cursor = 'grab';
-		});
+        imageContainerOuter.addEventListener('mousemove', (e) => {
+            const walkX = Math.abs(e.pageX - startX);
+            const walkY = Math.abs(e.pageY - startY);
+            console.log("px:", e.pageX, " sX:", startX);
 
-		imageContainer.addEventListener('mouseleave', () => {
-			isDragging = false;
-			imageContainer.style.cursor = 'grab';
-		});
+            if (isDragging == dragNo) return;
+
+            if (walkX > dragThreshold || walkY > dragThreshold) {
+                isDragging = dragYes;
+            }
+
+            e.preventDefault();
+
+            // Apply the new calculated positions
+            imageContainer.style.left = `${scrollLeft + (e.pageX - startX)}px`;
+            imageContainer.style.top = `${scrollTop + (e.pageY - startY)}px`;
+        });
+
+        imageContainerOuter.addEventListener('mouseup', () => {
+            if (isDragging != dragYes) {
+                overlayImage.style.opacity = overlayImage.style.opacity == 1 ? 0 : 1;
+            }
+            isDragging = dragNo;
+            imageContainer.style.cursor = 'grab';
+        });
+
+        /* imageContainerOuter.addEventListener('click', (e) => {
+            if (!isDragging) {
+                // Only toggle overlay if it was not a drag
+                overlayImage.style.opacity = overlayImage.style.opacity == 1 ? 0 : 1;
+            }
+        }); */
+
+
+        imageContainer.addEventListener('mouseleave', () => {
+            isDragging = dragNo;
+            imageContainer.style.cursor = 'grab';
+        });
     </script>
 </body>
 </html>
+<!-- vim: et -->
