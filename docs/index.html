@@ -200,7 +200,8 @@
 
             function getDefOriginURL() {
                 const origin = window.location.origin;
-                return (origin === "null" || !origin) ? defOriginURL : origin;
+                const path = window.location.pathname;
+                return (origin === "null" || !origin) ? defOriginURL + path : origin + path;
             }
             imglinksOriginInput.value = getDefOriginURL();
 
