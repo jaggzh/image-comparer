@@ -75,13 +75,26 @@
             z-index: 10;
             width: auto;
         }
+        .imglinks {
+            display: none;
+        }
     </style>
 </head>
 <body>
     <div class="controls" id="controls">
         🔍<button id="zoomOut">-</button> 
         <button id="zoomIn">+</button>
+        <button id="link">🔗</button>
         <button id="togglePosition">↔</button>
+    </div>
+    <div class="imglinks" id="imglinks">
+        <!-- User provides two links here:
+          <input name=img_url>
+          <input name=overlay_url>
+          <input area with generated url to this page value=?generated?>
+             value="https://jaggzh.github.io/image-comparer/?i=http://.../img.jpg&o=http://.../overlay.jpg"
+             Icon to copy value to clipboard: 📋
+        -->
     </div>
     <div class="tip" id="tip">
         Click toggles overlay.
